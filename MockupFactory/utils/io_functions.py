@@ -5,7 +5,7 @@ import multiprocessing
 from multiprocessing.dummy import Pool
 
 CORES = multiprocessing.cpu_count()
-IO_THREADS = 4
+IO_THREADS = 6
 
 
 def load_img_grayscale(img_path):
@@ -51,7 +51,7 @@ def load_img_array(img_paths, load_mode=-1, threads=IO_THREADS):
     :type img_paths: list
     :param load_mode: mode to load images in. default is unchanged. uses cv2 load image flags
     :type load_mode: int
-    :param threads: number of threads to use for io operation, default is 4
+    :param threads: number of threads to use for io operation, default is 6
     :type threads: int
     :return:
     """
