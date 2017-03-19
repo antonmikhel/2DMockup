@@ -22,8 +22,8 @@ class MockupGen(object):
         self.__log.info("MF instance initializing..")
         self.__name = name
         self.__prod_file_names = ["BabyBodySuit.jpg", "IphoneCase.jpg", "LadiesTank.jpg",
-                                  "t-shirt.png", "PillowSquare.jpg", "Socks.jpg",
-                                  "Sweatshirt.jpg", "ToteBag.jpg"]
+                                  "PillowSquare.jpg", "Socks.jpg", "Sweatshirt.jpg",
+                                  "ToteBag.jpg", "TShirt.png"]
         self.__prod_dir = os.path.join(r"D:\Dev\Resources", "Products")
         self.__prod_mask_dir = os.path.join(self.__prod_dir, "Masks")
         self.__logos_dir = os.path.join(r"D:\Dev\Resources", "Images for products")
@@ -98,40 +98,57 @@ class MockupGen(object):
     def apply_logo_with_shadows(self, logo_idx, prod_idx):
 
         self.__log.info("Applying logo #%d to product %d" % (logo_idx, prod_idx))
-        prod = self.__product_arr[prod_idx].astype(numpy.float32)
+        prod = self.__product_arr[prod_idx].astype(numpy.float)
         prod_mask = self.__product_mask_arr[prod_idx].astype(numpy.float)
         shadows = cv2.imread(r"D:\Dev\Resources\Products\Shadows\t-shirt.png", cv2.CV_LOAD_IMAGE_UNCHANGED)
+        shadows = shadows.astype(numpy.float)
         logo = self.__logo_arr[logo_idx].astype(numpy.float)
 
         first_row = numpy.transpose(prod_mask[:, :, 3].nonzero())[0][0]
         last_row = numpy.transpose(prod_mask[:, :, 3].nonzero())[-1][0]
 
         new_height = last_row - first_row
-        height_aspect = int(new_height / logo.shape[0])
+        height_aspect = new_height / float(logo.shape[0])
         new_width = int(logo.shape[1] * height_aspect)
 
-        logo = cv2.resize(logo, prod.shape[:-1][::-1])
+        logo = cv2.resize(logo, (new_width, new_height))
+        large_logo = numpy.zeros(prod_mask.shape, dtype=numpy.float)
+
+        new_logo_start_row = (prod_mask.shape[0] / 2) - (new_height / 2)
+        new_logo_start_col = (prod_mask.shape[1] / 2) - (new_width / 2)
+        new_logo_end_row = new_logo_start_row + new_height
+        new_logo_end_col = new_logo_start_col + new_width
+
+        logo_alpha = numpy.full(logo.shape[:-1], 255.0, dtype=numpy.float)
+        logo_alpha = logo_alpha[:, :, numpy.newaxis]
+        logo = numpy.concatenate((logo, logo_alpha), axis=-1)
+
+        large_logo[new_logo_start_row:new_logo_end_row, new_logo_start_col:new_logo_end_col] = logo
+        logo = large_logo
+
+        cv2.imwrite(r"D:\Dev\Resources\Tests\large_logo.jpg", large_logo)
+        cv2.imwrite(r"D:\Dev\Resources\Tests\large_logo.png", large_logo, [cv2.IMWRITE_PNG_COMPRESSION, 0])
 
         alpha = numpy.full(prod.shape[:-1], 255.0, dtype=numpy.float)
         alpha = alpha[:, :, numpy.newaxis]
         if not prod.shape[2] == 4:
             prod = numpy.concatenate((prod, alpha), axis=-1)
-        # if not prod_mask.shape[2] == 4:
-        #     prod_mask = numpy.concatenate((prod_mask, alpha), axis=-1)
+        if not prod_mask.shape[2] == 4:
+            prod_mask = numpy.concatenate((prod_mask, alpha), axis=-1)
         if not logo.shape[2] == 4:
             logo = numpy.concatenate((logo, alpha), axis=-1)
 
-        blended = blend_modes.multiply(prod_mask, logo, 1.0)
-        # blended = blend_modes.multiply(prod, blended, 0.8)
+        blended = blend_modes.multiply(prod_mask, logo, 0.85)
         blended = blend_modes.multiply(prod, blended, 1.0)
-        # added = blend_modes.addition(no_shirt, blended, 1.0)
+        blended = blend_modes.multiply(blended, shadows, 0.95)
 
         if 1:
-            curr_dir = os.path.join(r"D:\Dev\Resources\Tests", "%d" % logo_idx)
+            # curr_dir = os.path.join(r"D:\Dev\Resources\Tests", "%d" % logo_idx)
+            curr_dir = os.path.join(r"D:\Dev\Resources\Tests")
             if not os.path.exists(curr_dir):
                 os.mkdir(curr_dir)
 
-            cv2.imwrite(os.path.join(curr_dir, "%d_%d.jpg" % (logo_idx, prod_idx)), blended.astype(numpy.uint8))
+            cv2.imwrite(os.path.join(curr_dir, "%d_%d.png" % (logo_idx, prod_idx)), blended.astype(numpy.uint8))
 
             # cv2.namedWindow("window", cv2.WINDOW_NORMAL)
             # cv2.imshow('window', blended.astype(numpy.uint8))
@@ -148,5 +165,7 @@ class MockupGen(object):
         # for logo_idx in range(len(self.__logo_arr)):
         #     for prod_idx in range(len(self.__product_arr)):
         #         self.apply_logo(logo_idx, prod_idx)
+        for logo_idx in range(len(self.__logo_arr)):
+            self.apply_logo_with_shadows(logo_idx, 7)
 
         self.__log.info("Done applying all logos to all products!")
