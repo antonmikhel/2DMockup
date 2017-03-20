@@ -49,7 +49,8 @@ class MockupGen(object):
         prod_filenames = [_[0] for _ in prod_filenames]
         self.__log.info("Loading %d products from %s" % (len(prod_filenames), self.__logos_dir))
         self.__product_arr = [None for _ in range(len(prod_filenames))]
-        self.__product_arr = io_functions.load_img_array(prod_filenames, load_mode=cv2.CV_LOAD_IMAGE_UNCHANGED, threads=6)
+        self.__product_arr = io_functions.load_img_array(prod_filenames, load_mode=cv2.CV_LOAD_IMAGE_UNCHANGED,
+                                                         threads=6)
         self.__log.info("Products loaded")
 
     def product_mask_loader(self):
@@ -119,9 +120,10 @@ class MockupGen(object):
         new_logo_end_row = new_logo_start_row + new_height
         new_logo_end_col = new_logo_start_col + new_width
 
-        logo_alpha = numpy.full(logo.shape[:-1], 255.0, dtype=numpy.float)
-        logo_alpha = logo_alpha[:, :, numpy.newaxis]
-        logo = numpy.concatenate((logo, logo_alpha), axis=-1)
+        if logo.shape[2] != 4:
+            logo_alpha = numpy.full(logo.shape[:-1], 255.0, dtype=numpy.float)
+            logo_alpha = logo_alpha[:, :, numpy.newaxis]
+            logo = numpy.concatenate((logo, logo_alpha), axis=-1)
 
         large_logo[new_logo_start_row:new_logo_end_row, new_logo_start_col:new_logo_end_col] = logo
         logo = large_logo
